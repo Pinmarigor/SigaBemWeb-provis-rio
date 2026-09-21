@@ -1,13 +1,43 @@
 import { API_URL } from "../constants/map";
 import type { Stop, Pcd, DadosFiltro } from "../types/map";
 
-export async function fetchStops(stop_lat: number, stop_long: number): Promise<Stop[]> {
+function getAuthHeaders(): HeadersInit {
+    const token = localStorage.getItem("token");
+
+    if (!token || token === "undefined") {
+        console.error("Token de autenticação não encontrado.");
+        return {};
+    }
+
+    return {
+        Authorization: `Bearer ${token}`,
+    };
+}
+
+export async function fetchStops(
+    stop_lat: number,
+    stop_long: number
+): Promise<Stop[]> {
     try {
         const response = await fetch(
-            `${API_URL}/stop/nearby?stop_lat=${stop_lat}&stop_long=${stop_long}`
+            `${API_URL}/stop/nearby?stop_lat=${stop_lat}&stop_long=${stop_long}`,
+            {
+                headers: getAuthHeaders(),
+            }
         );
+
         const text = await response.text();
+
+        if (!response.ok) {
+            console.error(
+                `Erro ao buscar paradas: HTTP ${response.status}`,
+                text
+            );
+            return [];
+        }
+
         const jsonData = JSON.parse(text);
+
         return Array.isArray(jsonData) ? jsonData : [];
     } catch (error) {
         console.error("Erro ao buscar paradas de ônibus:", error);
@@ -15,13 +45,39 @@ export async function fetchStops(stop_lat: number, stop_long: number): Promise<S
     }
 }
 
-export async function fetchPcds(dadosFiltro: DadosFiltro): Promise<Pcd[]> {
-    const { minAge, maxAge, gender, disability, city, neighborhood: neigh } = dadosFiltro;
+export async function fetchPcds(
+    dadosFiltro: DadosFiltro
+): Promise<Pcd[]> {
+    const {
+        minAge,
+        maxAge,
+        gender,
+        disability,
+        city,
+        neighborhood: neigh,
+    } = dadosFiltro;
+
     try {
         const response = await fetch(
-            `${API_URL}/pcd/search?minAge=${minAge}&maxAge=${maxAge}&gender=${gender}&disability=${disability}&city=${city}&neigh=${neigh}`
+            `${API_URL}/pcd/search?minAge=${minAge}&maxAge=${maxAge}&gender=${gender}&disability=${disability}&city=${city}&neigh=${neigh}`,
+            {
+                headers: getAuthHeaders(),
+            }
         );
+
+        if (!response.ok) {
+            const text = await response.text();
+
+            console.error(
+                `Erro ao buscar PCDs: HTTP ${response.status}`,
+                text
+            );
+
+            return [];
+        }
+
         const data = await response.json();
+
         return Array.isArray(data) ? data : [];
     } catch (error) {
         console.error("Erro ao buscar PCDs:", error);
