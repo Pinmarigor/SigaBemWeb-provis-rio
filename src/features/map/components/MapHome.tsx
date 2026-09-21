@@ -4,6 +4,7 @@ import BaseMap from "./BaseMap";
 import FiltersContainer from './FiltersContainer'; 
 import StopLayer from '../layers/StopLayer'; 
 import PcdLayer from '../layers/PcdLayer'; 
+import GpsLayer from '../layers/GpsLayer';
 import LayerItem from "../layers/LayerItem";
 import FilterButton from "./FilterButton";
 
@@ -70,6 +71,7 @@ export default function MapHome() {
         <BaseMap>
           <LayerItem label="Paradas" layer={<StopLayer />}/>
           <LayerItem label="PCDs" layer={<PcdLayer dadosFiltro={pcdFilter} />}/>
+          <LayerItem label="Ônibus" layer={<GpsLayer />}/>
         </BaseMap>
       </main>
     </div>

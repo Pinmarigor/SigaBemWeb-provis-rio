@@ -1,5 +1,5 @@
 import { API_URL } from "../constants/map";
-import type { Stop, Pcd, DadosFiltro } from "../types/map";
+import type { Stop, Pcd, DadosFiltro, Bus } from "../types/map";
 
 function getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem("token");
@@ -82,5 +82,55 @@ export async function fetchPcds(
     } catch (error) {
         console.error("Erro ao buscar PCDs:", error);
         return [];
+    }
+}
+
+interface ApiBus {
+    busID: string;
+    busLat: number;
+    busLon: number;
+    timeStamp?: string;
+    tripHeadsign?: string;
+    velocidade?: number;
+}
+
+export async function fetchBuses(
+    latitude: number,
+    longitude: number,
+    radius: number = 2000
+): Promise<Bus[] | null> {
+    try {
+        const response = await fetch(
+            `${API_URL}/buses/nearby?lat=${latitude}&lon=${longitude}&radius=${radius}`,
+            {
+                headers: getAuthHeaders(),
+            }
+        );
+
+        if (!response.ok) {
+            const text = await response.text();
+            console.error(`Erro ao buscar ônibus: HTTP ${response.status}`, text);
+            return null;
+        }
+
+        const data: ApiBus[] = await response.json();
+        
+        if (!Array.isArray(data)) {
+            return [];
+        }
+
+        const buses: Bus[] = data.map((apiBus) => ({
+            bus_id: apiBus.busID,
+            latitude: apiBus.busLat,
+            longitude: apiBus.busLon,
+            velocidade: apiBus.velocidade,
+            trip_headsign: apiBus.tripHeadsign,
+            recorded_at: apiBus.timeStamp
+        }));
+
+        return buses;
+    } catch (error) {
+        console.error("Erro ao buscar ônibus de gps:", error);
+        return null;
     }
 }

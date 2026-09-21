@@ -16,6 +16,22 @@ export interface Pcd {
     residence: { latitude: number; longitude: number };
 }
 
+export interface Bus {
+    bus_id: string;
+    latitude: number;
+    longitude: number;
+    velocidade?: number;
+    trip_headsign?: string;
+    recorded_at?: string;
+    distance?: number;
+}
+
+export interface BusNearbyResponse {
+    success: boolean;
+    buses: Bus[];
+    lastUpdate?: string;
+}
+
 export interface DadosFiltro {
     minAge: number;
     maxAge: number;
