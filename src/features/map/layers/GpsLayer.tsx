@@ -36,7 +36,7 @@ export default function GpsLayer() {
             const center = map.getCenter();
             console.log(`[GPS] Buscando módulos em: ${center.lat}, ${center.lng}`);
 
-            const data = await fetchBuses(center.lat, center.lng, 2000);
+            const data = await fetchBuses(center.lat, center.lng, 10000);
 
             if (data) {
                 console.log(`[GPS] Módulos encontrados: ${data.length}`);
