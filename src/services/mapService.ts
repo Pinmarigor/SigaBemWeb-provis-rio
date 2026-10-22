@@ -101,7 +101,8 @@ export async function fetchBuses(
 ): Promise<Bus[] | null> {
     try {
         const response = await fetch(
-                `http://192.168.0.77:8090/api/buses`,
+            `http://192.168.0.77:8090/api/buses`,
+            //`https://labgeo3.recife.ifpe.edu.br/api/buses`,
             //`${API_URL}/buses/nearby?lat=${latitude}&lon=${longitude}&radius=${radius}`,
             {
                 headers: getAuthHeaders(),
@@ -117,7 +118,7 @@ export async function fetchBuses(
         const data: ApiBus[] = await response.json();
 
         console.log("API inexistente: " + `${API_URL}/buses/nearby?lat=${latitude}&lon=${longitude}&radius=${radius}`);
-        
+
         if (!Array.isArray(data)) {
             return [];
         }
