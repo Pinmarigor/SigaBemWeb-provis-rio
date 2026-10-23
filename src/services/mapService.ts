@@ -1,5 +1,5 @@
 import { API_URL } from "../constants/map";
-import type { Stop, Pcd, DadosFiltro, Bus } from "../types/map";
+import type { Stop, Pcd, DadosFiltro, Bus, CtmStop } from "../types/map";
 
 function getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem("token");
@@ -14,35 +14,135 @@ function getAuthHeaders(): HeadersInit {
     };
 }
 
-export async function fetchStops(
-    stop_lat: number,
-    stop_long: number
-): Promise<Stop[]> {
-    try {
-        const response = await fetch(
-            `${API_URL}/stop/nearby?stop_lat=${stop_lat}&stop_long=${stop_long}`,
-            {
-                headers: getAuthHeaders(),
-            }
-        );
+const CTM_STOPS_URL = "https://labgeo3.recife.ifpe.edu.br/apictm/stop";
 
-        const text = await response.text();
+let cachedStops: Stop[] | null = null;
+let inFlightStopsRequest: Promise<Stop[]> | null = null;
 
-        if (!response.ok) {
-            console.error(
-                `Erro ao buscar paradas: HTTP ${response.status}`,
-                text
-            );
-            return [];
-        }
+export function calculateDistanceInMeters(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+): number {
+    const R = 6371000; // Raio médio da Terra em metros
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
 
-        const jsonData = JSON.parse(text);
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
 
-        return Array.isArray(jsonData) ? jsonData : [];
-    } catch (error) {
-        console.error("Erro ao buscar paradas de ônibus:", error);
-        return [];
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c;
+}
+
+async function loadAllCtmStops(): Promise<Stop[]> {
+    if (cachedStops) {
+        return cachedStops;
     }
+
+    if (inFlightStopsRequest) {
+        return inFlightStopsRequest;
+    }
+
+    inFlightStopsRequest = (async () => {
+        try {
+            const response = await fetch(CTM_STOPS_URL);
+
+            if (!response.ok) {
+                console.error(
+                    `Erro ao buscar paradas do CTM: HTTP ${response.status}`
+                );
+                return [];
+            }
+
+            let data: unknown;
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                console.error("Erro ao analisar JSON retornado pelo CTM:", jsonError);
+                return [];
+            }
+
+            if (!Array.isArray(data)) {
+                console.error("Resposta da API do CTM não é um array válido.");
+                return [];
+            }
+
+            const validStops: Stop[] = [];
+            for (const item of data as CtmStop[]) {
+                if (!item) continue;
+
+                const lat = Number(item.lat);
+                const lon = Number(item.lon);
+
+                if (
+                    !Number.isFinite(lat) ||
+                    !Number.isFinite(lon) ||
+                    lat < -90 ||
+                    lat > 90 ||
+                    lon < -180 ||
+                    lon > 180
+                ) {
+                    continue;
+                }
+
+                validStops.push({
+                    stopId: String(item.id ?? ""),
+                    stopName: String(item.name ?? ""),
+                    stopLat: lat,
+                    stopLon: lon,
+                });
+            }
+
+            if (validStops.length > 0) {
+                cachedStops = validStops;
+            }
+
+            return validStops;
+        } catch (error) {
+            console.error("Erro ao carregar paradas de ônibus do CTM:", error);
+            return [];
+        } finally {
+            inFlightStopsRequest = null;
+        }
+    })();
+
+    return inFlightStopsRequest;
+}
+
+export async function fetchStops(
+    stop_lat?: number,
+    stop_long?: number,
+    radiusInMeters: number = 300
+): Promise<Stop[]> {
+    const allStops = await loadAllCtmStops();
+
+    if (
+        typeof stop_lat !== "number" ||
+        typeof stop_long !== "number" ||
+        !Number.isFinite(stop_lat) ||
+        !Number.isFinite(stop_long)
+    ) {
+        return allStops;
+    }
+
+    return allStops.filter((stop) => {
+        const dist = calculateDistanceInMeters(
+            stop_lat,
+            stop_long,
+            stop.stopLat,
+            stop.stopLon
+        );
+        return dist <= radiusInMeters;
+    });
 }
 
 export async function fetchPcds(

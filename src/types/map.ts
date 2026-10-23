@@ -7,6 +7,25 @@ export interface Stop {
     stopLon: number;
 }
 
+export type CtmStop = {
+    id: string;
+    name: string;
+    lat: number;
+    lon: number;
+    url: string;
+    locationType: number;
+};
+
+export type AddressStatus = "idle" | "loading" | "success" | "error";
+
+export interface StopAddress {
+    status: AddressStatus;
+    formattedAddress?: string;
+    displayName?: string;
+    error?: string;
+    fetchedAt?: number;
+}
+
 export interface Pcd {
     pcd_id: string;
     age: number;
