@@ -14,7 +14,7 @@ function getAuthHeaders(): HeadersInit {
     };
 }
 
-const CTM_STOPS_URL = "https://labgeo3.recife.ifpe.edu.br/apictm/stop";
+const CTM_STOPS_URL = "/apictm/stop";
 
 let cachedStops: Stop[] | null = null;
 let inFlightStopsRequest: Promise<Stop[]> | null = null;
@@ -201,7 +201,8 @@ export async function fetchBuses(
 ): Promise<Bus[] | null> {
     try {
         const response = await fetch(
-            `http://192.168.0.77:8090/api/buses`,
+            'api/buses',
+            //`http://192.168.0.77:8090/api/buses`,
             //`https://labgeo3.recife.ifpe.edu.br/api/buses`,
             //`${API_URL}/buses/nearby?lat=${latitude}&lon=${longitude}&radius=${radius}`,
             {
